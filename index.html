@@ -1,24 +1,25 @@
 <!DOCTYPE html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="all.min.css" />
-    <link rel="stylesheet" href="style.css" />
-    <title>Приложение для выбора дежурных</title>
-    <style></style>
-  </head>
-  <body>
-    <h1>Приложение для выбора дежурных</h1>
 
-    <div class="container">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="style.css" />
+  <title>Приложение для выбора дежурных</title>
+</head>
+
+<body id="main">
+  <h1>Приложение для выбора дежурных</h1>
+
+  <div class="container">
+    <header class="header">
       <div class="add-duties">
-        <button onclick="selectDuties()">
+        <button id="selectDuties">
           Выбрать случайных дежурных (мин. 3)
         </button>
-        <button onclick="logout()">Выйти</button>
+        <button id="logout">Выйти</button>
       </div>
-
       <div id="statistics">
         <p id="totalDutyCount"><span>Всего дежурных:</span> 0</p>
         <p id="ongoingDutyCount"><span>Текущие дежурства:</span> 0</p>
@@ -27,35 +28,35 @@
         <p id="lastResetDate"><span>Последнее обновление статистики:</span></p>
       </div>
 
-      <div class="flex">
-        <div class="dutyList">
-          <h2>Добавить дежурного из списка</h2>
-          <div id="dutyList"></div>
-        </div>
-        <div class="currentDutyList">
-          <h2>Текущие дежурные:</h2>
-          <div id="currentDutyList" class="duty-container"></div>
-        </div>
-        <div class="skippedDutyList">
-          <h2>Сбежавшие:</h2>
-          <div id="skippedDutyList" class="duty-container"></div>
-        </div>
+    </header>
 
-        <div class="completedDutyList">
-          <h2>Продежурившие:</h2>
-          <div id="completedDutyList" class="duty-container"></div>
-        </div>
+    <div class="flex">
+      <div class="dutyList">
+        <h2>Добавить дежурного из списка</h2>
+        <div id="dutyList"></div>
+      </div>
+      <div class="currentDutyList">
+        <h2>Текущие дежурные:</h2>
+        <div id="currentDutyList" class="duty-container"></div>
+      </div>
+      <div class="skippedDutyList">
+        <h2>Сбежавшие:</h2>
+        <div id="skippedDutyList" class="duty-container"></div>
+      </div>
+
+      <div class="completedDutyList">
+        <h2>Продежурившие:</h2>
+        <div id="completedDutyList" class="duty-container"></div>
       </div>
     </div>
+  </div>
 
-    <script src="all.min.js"></script>
-    <script src="app.js"></script>
+  <div id="loader" class="loader hidden">
+    <div class="spinner"></div>
+  </div>
 
-    <script>
-      function logout() {
-        localStorage.removeItem("isLoggedIn");
-        window.location.href = "login.html";
-      }
-    </script>
-  </body>
+
+  <script src="app.js" type="module"></script>
+</body>
+
 </html>

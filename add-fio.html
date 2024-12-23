@@ -4,8 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Авторизация</title>
-
+  <title>Добавление списка ФИО</title>
   <style>
     * {
       box-sizing: border-box;
@@ -23,32 +22,30 @@
       padding: 40px;
     }
 
-    input {
-      outline: none;
-    }
-
-    .login-form {
+    .form-container {
       border: 1px solid #ccc;
       padding: 20px;
       border-radius: 5px;
-      max-width: 300px;
+      max-width: 400px;
       width: 100%;
       background-color: #fff;
     }
 
-    .login-form input {
+    textarea {
       width: 100%;
+      height: 150px;
       padding: 10px;
       margin: 10px 0;
       border: 1px solid #ccc;
       border-radius: 5px;
+      font-family: Arial, sans-serif;
     }
 
-    .login-form input:focus {
+    textarea:focus {
       border: solid 1px #5a67d8;
     }
 
-    .login-form button {
+    button {
       width: 100%;
       padding: 10px;
       background-color: #5a67d8;
@@ -58,19 +55,18 @@
       cursor: pointer;
     }
 
-    .login-form button:hover {
+    button:hover {
       background-color: #4c51bf;
     }
   </style>
 </head>
 
 <body>
-  <div class="login-form">
-    <h2>Авторизация</h2>
-    <form id="login">
-      <input type="text" id="username" placeholder="Логин" />
-      <input type="password" id="password" placeholder="Пароль" />
-      <button type="submit">Войти</button>
+  <div class="form-container">
+    <h2>Добавьте список ФИО</h2>
+    <form id="fioForm">
+      <textarea id="fioList" placeholder="Введите список ФИО, разделенных переносами строк"></textarea>
+      <button type="submit">Сохранить</button>
     </form>
   </div>
 

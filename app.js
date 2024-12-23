@@ -1,79 +1,180 @@
-document.addEventListener('DOMContentLoaded', () => {
-  if (!localStorage.getItem('isLoggedIn')) {
-    window.location.href = 'login.html';
-  } else {
-    displayDutyList();
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
+import {
+  getDatabase,
+  ref,
+  set,
+  get,
+} from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+import { firebaseConfig } from "./firebaseConfig.js";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const db = getDatabase(app);
+
+let dutyList = [];
+let currentDutyList = [];
+
+async function login(event) {
+  event.preventDefault();
+
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  try {
+    await signInWithEmailAndPassword(auth, username, password);
+
+    localStorage.setItem("isLoggedIn", "true");
+    window.location.href = "index.html";
+  } catch (error) {
+    alert("Ошибка авторизации: " + error.message);
+  }
+}
+const loginForm = document.getElementById("login");
+if (loginForm) {
+  loginForm.addEventListener("submit", login);
+}
+
+async function saveDutyToFirebase() {
+  showLoader();
+  try {
+    await set(ref(db, "duties/"), {
+      dutyList: dutyList,
+      currentDutyList: currentDutyList,
+    });
+    console.log("Данные успешно сохранены в Firebase.");
+  } catch (error) {
+    console.error("Ошибка при сохранении данных в Firebase: ", error);
+  } finally {
+    hideLoader();
+  }
+}
+
+async function checkDutyList() {
+  try {
+    const snapshot = await get(ref(db, "duties"));
+    if (!snapshot.exists() || snapshot.val().length === 0) {
+      if (!window.location.href.includes("add-fio.html")) {
+        window.location.href = "add-fio.html";
+      }
+    }
+  } catch (error) {
+    console.error("Ошибка при получении списка дежурных: ", error);
+  }
+}
+
+auth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    if (!window.location.href.includes("login.html")) {
+      window.location.href = "login.html";
+    }
+    return;
+  }
+
+  try {
+    await checkDutyList();
+  } catch (error) {
+    console.error("Ошибка при проверке списка дежурных: ", error);
   }
 });
 
+async function loadDutyList() {
+  showLoader();
+  try {
+    const snapshot = await get(ref(db, "duties/"));
 
-let dutyList = JSON.parse(localStorage.getItem('dutyList')) || [
-  { name: 'Абасова Акылай Абасовна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Абдыкадыров Темирлан Абдыкапарович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Акматалиев Элмирдин Нурбекович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Аманбаев Ормотой Уланович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Аскарбекова Арууке Нурдиновна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Ахметов Амирхан Рахатович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Баястанов Имран Канатбекович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Бекболотова Самия Кубанычбековна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Бекболсунова Элана Омурбековна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Бекжанов Нуржигит Нурланович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Дзогоева Анастасия Юрьевна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Жаныбеков Куштар Рахатбекович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Ибраимова Жасмин Мухамбетовна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Ильна Адина Адилевна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Исрайилова Адель Улановна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Исрайилова Даяна Улановна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Кыдыкова Миргульзат Назирбековна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Ломаев Амир Андреевич', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Мельников Даниил Романович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Миннапова Фатима Тынчтыкбековна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Нурканова Азима Самаровна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Нурланова Бегимай Нурлановна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Пархаев Иван Александрович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Рысбаев Алтай Нурланович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Сон Роман Александрович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Старченко Артем Алексеевич', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Сыдыков Дастан Орозбекович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Талантбек Яна', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Толонов Байтур Туратбекович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Филин Артем Викторович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Хакимбеков Чынгыз Олимжанович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-  { name: 'Юсупов Аслан Русланович', count: 0, weeklyCount: 0, status: '', dutyDates: [] },
-];
+    if (snapshot.exists()) {
+      const data = snapshot.val();
 
-let currentDutyList = JSON.parse(localStorage.getItem('currentDutyList')) || [];
+      dutyList = data.dutyList || [];
+      currentDutyList = data.currentDutyList || [];
+      console.log("Данные успешно загружены из Firebase.");
+
+      displayDutyList();
+    } else {
+      console.log("Данные в Firebase отсутствуют.");
+    }
+  } catch (error) {
+    console.error("Ошибка при загрузке данных из Firebase: ", error);
+  } finally {
+    hideLoader();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  if (document.body.id === "main") {
+    await loadDutyList();
+  }
+});
 
 function displayDutyList() {
-  const dutyListDiv = document.getElementById('dutyList');
-  const completedDutyListDiv = document.getElementById('completedDutyList');
-  const skippedDutyListDiv = document.getElementById('skippedDutyList');
-  const currentDutyListDiv = document.getElementById('currentDutyList');
+  const dutyListDiv = document.getElementById("dutyList");
+  const completedDutyListDiv = document.getElementById("completedDutyList");
+  const skippedDutyListDiv = document.getElementById("skippedDutyList");
+  const currentDutyListDiv = document.getElementById("currentDutyList");
 
-  dutyListDiv.innerHTML = '';
-  completedDutyListDiv.innerHTML = '';
-  skippedDutyListDiv.innerHTML = '';
-  currentDutyListDiv.innerHTML = '';
+  dutyListDiv.innerHTML = "";
+  completedDutyListDiv.innerHTML = "";
+  skippedDutyListDiv.innerHTML = "";
+  currentDutyListDiv.innerHTML = "";
 
   dutyList.forEach((duty, index) => {
-    const dutyDates = duty.dutyDates.length > 0 ? duty.dutyDates.join(', ') : 'нет';
-    const buttonsHtml = duty.status === 'ongoing' ? `
-      <div>
-        <button onclick="markAsAddet(${index})"><i class="fas fa-plus"></i></button>
-        <button onclick="markAsCompleted(${index})"><i class="fas fa-check"></i></button>
-        <button onclick="markAsSkipped(${index})"><i class="fas fa-times"></i></button>
-        <button onclick="cancelDuty(${index})"><i class="fas fa-ban"></i></button>
-      </div>
-    ` : `
-      <div>
-        <button onclick="markAsAddet(${index})"><i class="fas fa-plus"></i></button>
-        <button onclick="markAsCompleted(${index})"><i class="fas fa-check"></i></button>
-      </div>
-    `;
+    const dutyDates =
+      duty.dutyDates && duty.dutyDates.length > 0 ? duty.dutyDates.join(", ") : "нет";
+    const buttonsHtml =
+      duty.status === "ongoing"
+        ? `
+        <button class="check" onclick="markAsCompleted(${index})">
+          Выполнил
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+          </svg>
+        </button>
+        <button class="skip" onclick="markAsSkipped(${index})">
+          Сбежал
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <button class="cancel" onclick="cancelDuty(${index})">
+          Сбросить
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+        </button>
+      `
+        : duty.status === "skipped"
+        ? `
+        <button onclick="markAsAddet(${index})">
+          Добавить
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </button>
+        <button class="cancel" onclick="cancelDuty(${index})">
+          Сбросить
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+        </button>
+        `
+        : `
+        <button onclick="markAsAddet(${index})">
+          Добавить
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </button>
+      `;
 
     const dutyHtml = `
       <div class="duty ${duty.status}">
-        <span>${duty.name} - Всего: ${duty.count} (неделя: ${duty.weeklyCount})</span>
+        <span>${duty.name} - Всего: ${duty.count}</span>
         <div class="dates">Даты дежурств: ${dutyDates}</div>
         <div class="buttons">
           ${buttonsHtml}
@@ -81,11 +182,11 @@ function displayDutyList() {
       </div>
     `;
 
-    if (duty.status === 'completed') {
+    if (duty.status === "completed") {
       completedDutyListDiv.innerHTML += dutyHtml;
-    } else if (duty.status === 'skipped') {
+    } else if (duty.status === "skipped") {
       skippedDutyListDiv.innerHTML += dutyHtml;
-    } else if (duty.status === 'ongoing') {
+    } else if (duty.status === "ongoing") {
       currentDutyListDiv.innerHTML += dutyHtml;
     } else {
       dutyListDiv.innerHTML += dutyHtml;
@@ -96,86 +197,138 @@ function displayDutyList() {
 }
 
 function updateStatistics() {
-  const ongoingCount = dutyList.filter(d => d.status === 'ongoing').length;
-  const completedCount = dutyList.filter(d => d.status === 'completed').length;
-  const skippedCount = dutyList.filter(d => d.status === 'skipped').length;
+  const ongoingCount = dutyList.filter((d) => d.status === "ongoing").length;
+  const completedCount = dutyList.filter((d) => d.status === "completed").length;
+  const skippedCount = dutyList.filter((d) => d.status === "skipped").length;
 
-  document.getElementById('totalDutyCount').innerText = `Всего дежурных: ${dutyList.length}`;
-  document.getElementById('ongoingDutyCount').innerText = `Текущие дежурства: ${ongoingCount}`;
-  document.getElementById('completedDutyCount').innerText = `Завершенные дежурства: ${completedCount}`;
-  document.getElementById('skippedDutyCount').innerText = `Сбежавшие дежурства: ${skippedCount}`;
-  document.getElementById('lastResetDate').innerText = `Последнее обновление статистики: ${new Date().toLocaleDateString()}`;
+  document.getElementById("totalDutyCount").innerText = `Всего дежурных: ${
+    dutyList.length - ongoingCount - completedCount - skippedCount
+  }`;
+  document.getElementById("ongoingDutyCount").innerText = `Текущие дежурства: ${ongoingCount}`;
+  document.getElementById(
+    "completedDutyCount"
+  ).innerText = `Завершенные дежурства: ${completedCount}`;
+  document.getElementById("skippedDutyCount").innerText = `Сбежавшие дежурства: ${skippedCount}`;
+  document.getElementById(
+    "lastResetDate"
+  ).innerText = `Последнее обновление статистики: ${new Date().toLocaleDateString()}`;
 }
 
-function markAsAddet(index) {
-  const duty = dutyList[index];
+async function markAsAddet(index) {
+  showLoader();
 
-  if (currentDutyList.some(d => d.name === duty.name)) {
-    alert('Этот дежурный уже в текущем дежурстве.');
-    return;
+  try {
+    const duty = dutyList[index];
+
+    if (currentDutyList.some((d) => d.name === duty.name)) {
+      alert("Этот дежурный уже в текущем дежурстве.");
+      return;
+    }
+
+    if (duty.status !== "skipped") {
+      duty.count++;
+    }
+
+    duty.status = "ongoing";
+    if (duty.dutyDates) {
+      duty.dutyDates.push(new Date().toLocaleDateString());
+    } else {
+      duty.dutyDates = [new Date().toLocaleDateString()];
+    }
+
+    currentDutyList.push({
+      name: duty.name,
+      count: duty.count,
+      dutyDates: [...duty.dutyDates],
+    });
+
+    await saveDutyToFirebase();
+    displayDutyList();
+  } catch (error) {
+    console.error("Ошибка при добавлении дежурного: ", error);
+  } finally {
+    hideLoader();
   }
-
-  duty.status = 'ongoing';
-  duty.count++;
-  duty.weeklyCount++;
-  duty.dutyDates.push(new Date().toLocaleDateString());
-
-  currentDutyList.push({
-    name: duty.name,
-    count: duty.count,
-    weeklyCount: duty.weeklyCount,
-    dutyDates: [...duty.dutyDates]
-  });
-
-  saveToLocalStorage();
-  displayDutyList();
 }
+window.markAsAddet = markAsAddet;
 
-function markAsCompleted(index) {
-  const duty = dutyList[index];
-  if (duty.status !== 'ongoing') {
-    alert('Этот дежурный не может быть завершен.');
-    return;
+async function markAsCompleted(index) {
+  showLoader();
+
+  try {
+    const duty = dutyList[index];
+    if (duty.status !== "ongoing") {
+      alert("Этот дежурный не может быть завершен.");
+      return;
+    }
+
+    duty.status = "completed";
+    currentDutyList = currentDutyList.filter((d) => d.name !== duty.name);
+
+    const completedCount = dutyList.filter((d) => d.status === "completed").length;
+    if (completedCount === dutyList.length) {
+      dutyList = dutyList.map((item) => ({ ...item, status: "" }));
+    }
+
+    await saveDutyToFirebase();
+    displayDutyList();
+  } catch (error) {
+    console.error("Ошибка при обновлении дежурного: ", error);
+  } finally {
+    hideLoader();
   }
-
-  duty.status = 'completed';
-  currentDutyList = currentDutyList.filter(d => d.name !== duty.name);
-  saveToLocalStorage();
-  displayDutyList();
 }
+window.markAsCompleted = markAsCompleted;
 
-function markAsSkipped(index) {
-  const duty = dutyList[index];
-  if (duty.status !== 'ongoing') {
-    alert('Этот дежурный не может быть отмечен как сбежавший.');
-    return;
+async function markAsSkipped(index) {
+  showLoader();
+
+  try {
+    const duty = dutyList[index];
+    if (duty.status !== "ongoing") {
+      alert("Этот дежурный не может быть отмечен как сбежавший.");
+      return;
+    }
+
+    duty.status = "skipped";
+    currentDutyList = currentDutyList.filter((d) => d.name !== duty.name);
+    await saveDutyToFirebase();
+    displayDutyList();
+  } catch (error) {
+    console.error("Ошибка при сбросе дежурного: ", error);
+  } finally {
+    hideLoader();
   }
-
-  duty.status = 'skipped';
-  currentDutyList = currentDutyList.filter(d => d.name !== duty.name);
-  saveToLocalStorage();
-  displayDutyList();
 }
+window.markAsSkipped = markAsSkipped;
 
-function cancelDuty(index) {
-  const duty = dutyList[index];
-  if (duty.status === 'ongoing') {
-    currentDutyList = currentDutyList.filter(d => d.name !== duty.name);
+async function cancelDuty(index) {
+  showLoader();
+
+  try {
+    const duty = dutyList[index];
+    if (duty.status === "ongoing") {
+      currentDutyList = currentDutyList.filter((d) => d.name !== duty.name);
+    }
+
+    duty.status = "";
+    duty.count--;
+    duty.dutyDates.pop();
+
+    await saveDutyToFirebase();
+    displayDutyList();
+  } catch (error) {
+    console.error("Ошибка при отмене дежурного: ", error);
+  } finally {
+    hideLoader();
   }
-
-  duty.status = '';
-  duty.count--;
-  duty.weeklyCount--;
-  duty.dutyDates.pop();
-
-  saveToLocalStorage();
-  displayDutyList();
 }
+window.cancelDuty = cancelDuty;
 
 function selectDuties() {
-  const eligibleDuties = dutyList.filter(duty => duty.status === '');
+  const eligibleDuties = dutyList.filter((duty) => duty.status === "");
   if (eligibleDuties.length < 3) {
-    alert('Недостаточно дежурных для выбора.');
+    alert("Недостаточно дежурных для выбора.");
     return;
   }
 
@@ -188,14 +341,66 @@ function selectDuties() {
     }
   }
 
-  selectedDuties.forEach(duty => markAsAddet(dutyList.indexOf(duty)));
+  selectedDuties.forEach((duty) => markAsAddet(dutyList.indexOf(duty)));
 }
 
-function saveToLocalStorage() {
-  localStorage.setItem('dutyList', JSON.stringify(dutyList));
-  localStorage.setItem('currentDutyList', JSON.stringify(currentDutyList));
+function logout() {
+  signOut(auth)
+    .then(() => {
+      localStorage.removeItem("isLoggedIn");
+      window.location.href = "login.html";
+    })
+    .catch((error) => {
+      console.error("Ошибка выхода: ", error);
+    });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  displayDutyList();
-});
+const addFio = async (event) => {
+  event.preventDefault();
+  const fioList = document
+    .getElementById("fioList")
+    .value.split("\n")
+    .map((fio) => fio.trim())
+    .filter((fio) => fio.length > 0);
+
+  if (fioList.length === 0) {
+    alert("Список не может быть пустым");
+    return;
+  }
+
+  try {
+    await set(ref(db, "duties/"), {
+      dutyList: fioList.map((fio) => ({ name: fio, count: 0, status: "", dutyDates: [] })),
+      currentDutyList: [],
+    });
+    alert("Список ФИО успешно сохранен!");
+    window.location.href = "index.html"; // Редирект на главную страницу
+  } catch (error) {
+    console.error("Ошибка при сохранении данных: ", error);
+    alert("Не удалось сохранить данные. Попробуйте снова.");
+  }
+};
+const fioForm = document.getElementById("fioForm");
+if (fioForm) {
+  fioForm.addEventListener("submit", addFio);
+}
+
+const logoutButton = document.getElementById("logout");
+if (logoutButton) {
+  logoutButton.addEventListener("click", logout);
+}
+const selectDutiesButton = document.getElementById("selectDuties");
+
+if (selectDutiesButton) {
+  selectDutiesButton.addEventListener("click", selectDuties);
+}
+
+function showLoader() {
+  const loader = document.getElementById("loader");
+  if (loader) loader.classList.remove("hidden");
+}
+
+function hideLoader() {
+  const loader = document.getElementById("loader");
+  if (loader) loader.classList.add("hidden");
+}
