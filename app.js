@@ -127,7 +127,7 @@ function displayDutyList() {
     const dutyDates =
       duty.dutyDates && duty.dutyDates.length > 0 ? duty.dutyDates.join(", ") : "нет";
     const buttonsHtml =
-      duty.status === "ongoing"
+      duty.status === "latecomer" || duty.status === "ongoing"
         ? `
         <button class="check" onclick="markAsCompleted(${index})">
           Выполнил
@@ -163,6 +163,15 @@ function displayDutyList() {
           </svg>
         </button>
         `
+        : duty.status === "completed"
+        ? `
+          <button onclick="markAsAddet(${index})">
+            Добавить
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </button>
+        `
         : `
         <button onclick="markAsAddet(${index})">
           Добавить
@@ -170,11 +179,18 @@ function displayDutyList() {
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
         </button>
+        <button class="latecomer" onclick="markAsAddet(${index}, ${true})">
+          Опоздал
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+        </button>
       `;
 
     const dutyHtml = `
       <div class="duty ${duty.status}">
-        <span>${duty.name} - Всего: ${duty.count}</span>
+        <span>${duty.name} - Дежурств: ${duty.count}</span>
+        <div class="late">Опозданий: <span>${duty.dutyLate ? duty.dutyLate : 0}</span></div>
         <div class="dates">Даты дежурств: ${dutyDates}</div>
         <div class="buttons">
           ${buttonsHtml}
@@ -186,7 +202,7 @@ function displayDutyList() {
       completedDutyListDiv.innerHTML += dutyHtml;
     } else if (duty.status === "skipped") {
       skippedDutyListDiv.innerHTML += dutyHtml;
-    } else if (duty.status === "ongoing") {
+    } else if (duty.status === "latecomer" || duty.status === "ongoing") {
       currentDutyListDiv.innerHTML += dutyHtml;
     } else {
       dutyListDiv.innerHTML += dutyHtml;
@@ -214,7 +230,7 @@ function updateStatistics() {
   ).innerText = `Последнее обновление статистики: ${new Date().toLocaleDateString()}`;
 }
 
-async function markAsAddet(index) {
+async function markAsAddet(index, isLatecomer) {
   showLoader();
 
   try {
@@ -225,15 +241,21 @@ async function markAsAddet(index) {
       return;
     }
 
-    if (duty.status !== "skipped") {
+    if (duty.status !== "skipped" && !isLatecomer) {
       duty.count++;
     }
 
-    duty.status = "ongoing";
-    if (duty.dutyDates) {
-      duty.dutyDates.push(new Date().toLocaleDateString());
+    if (isLatecomer) {
+      duty.status = "latecomer";
+      duty.dutyDates = duty.dutyDates ? [...duty.dutyDates] : [];
+      duty.dutyLate = duty.dutyLate || duty.dutyLate === 0 ? duty.dutyLate + 1 : 0;
     } else {
-      duty.dutyDates = [new Date().toLocaleDateString()];
+      duty.status = "ongoing";
+      if (duty.dutyDates) {
+        duty.dutyDates.push(new Date().toLocaleDateString());
+      } else {
+        duty.dutyDates = [new Date().toLocaleDateString()];
+      }
     }
 
     currentDutyList.push({
@@ -257,12 +279,18 @@ async function markAsCompleted(index) {
 
   try {
     const duty = dutyList[index];
-    if (duty.status !== "ongoing") {
+
+    if (duty.status !== "latecomer" && duty.status !== "ongoing") {
       alert("Этот дежурный не может быть завершен.");
       return;
     }
 
-    duty.status = "completed";
+    if (duty.status === "latecomer") {
+      duty.status = "";
+    } else {
+      duty.status = "completed";
+    }
+
     currentDutyList = currentDutyList.filter((d) => d.name !== duty.name);
 
     const completedCount = dutyList.filter((d) => d.status === "completed").length;
@@ -285,7 +313,7 @@ async function markAsSkipped(index) {
 
   try {
     const duty = dutyList[index];
-    if (duty.status !== "ongoing") {
+    if (duty.status !== "latecomer" && duty.status !== "ongoing") {
       alert("Этот дежурный не может быть отмечен как сбежавший.");
       return;
     }
@@ -370,7 +398,13 @@ const addFio = async (event) => {
 
   try {
     await set(ref(db, "duties/"), {
-      dutyList: fioList.map((fio) => ({ name: fio, count: 0, status: "", dutyDates: [] })),
+      dutyList: fioList.map((fio) => ({
+        name: fio,
+        count: 0,
+        status: "",
+        dutyDates: [],
+        dutyLate: 0,
+      })),
       currentDutyList: [],
     });
     alert("Список ФИО успешно сохранен!");

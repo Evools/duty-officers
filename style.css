@@ -38,6 +38,9 @@ button svg {
 .skip {
   background: #d48944;
 }
+.latecomer {
+  background: #9e004f;
+}
 .cancel {
   background: #d44444;
 }
@@ -65,6 +68,13 @@ button:hover {
   background-color: #e2e2f7;
   text-decoration: line-through;
   color: gray;
+}
+.late {
+  font-size: 14px;
+}
+.late span {
+  color: #9e004f;
+  font-weight: 600;
 }
 .skipped {
   background-color: #f7e2e2;
