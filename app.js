@@ -335,13 +335,16 @@ async function cancelDuty(index) {
 
   try {
     const duty = dutyList[index];
-    if (duty.status === "ongoing") {
+    if (duty.status === "latecomer" || duty.status === "ongoing") {
       currentDutyList = currentDutyList.filter((d) => d.name !== duty.name);
     }
 
+    if (duty.status === "ongoing") {
+      duty.count--;
+      duty.dutyDates.pop();
+    }
+
     duty.status = "";
-    duty.count--;
-    duty.dutyDates.pop();
 
     await saveDutyToFirebase();
     displayDutyList();
